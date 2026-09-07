@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "CodeChallangeApp",
+    "slug": "CodeChallangeApp",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que o CodeChallangeApp acesse a câmera para registrar fotos das visitas técnicas"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permitir que o CodeChallangeApp use sua localização para registrar o GPS da visita técnica."
+        }
+      ],
+      "expo-font",
+      "expo-splash-screen"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Permitir que o CodeChallangeApp acesse a câmera para registrar fotos das visitas técnicas.",
+        "NSLocationWhenInUseUsageDescription": "Permitir que o CodeChallangeApp use sua localização para registrar o GPS da visita técnica."
+      }
+    },
+    "android": {
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
