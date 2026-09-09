@@ -1,119 +1,70 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { TabBar } from './components/TabBar';
 import { NovaVisita } from './screens/NovaVisita';
 import { Historico } from './screens/Historico';
 import { Status } from './screens/Status';
-import { captureLocation } from './src/gps';
-import { clearVisitas, listVisitas } from './src/storage';
 import { useStability } from './src/telemetry';
+import { useFontesProntas, useGps, useHistorico } from './src/hooks';
 import { theme } from './src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    DMSans_400Regular: require('@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf'),
-    DMSans_500Medium: require('@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf'),
-    DMSans_700Bold: require('@expo-google-fonts/dm-sans/700Bold/DMSans_700Bold.ttf'),
-  });
-
-  const hideSplash = useCallback(async () => {
-    if (fontsLoaded) await SplashScreen.hideAsync().catch(() => {});
-  }, [fontsLoaded]);
-
-  useEffect(() => {
-    hideSplash();
-  }, [hideSplash]);
-
+  const pronto = useFontesProntas();
   const [tab, setTab] = useState('nova');
-  const [historico, setHistorico] = useState([]);
-
-  // Nível Pleno: hook único no topo — evita 2 listeners do Accelerometer
+  const { visitas, recarregar, limpar } = useHistorico();
+  const gps = useGps();
   const stability = useStability();
 
-  // GPS compartilhado entre Nova e Status (RF02)
-  const [gps, setGps] = useState(null);
-  const [gpsMsg, setGpsMsg] = useState(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
-
-  async function reloadHistorico() {
-    setHistorico(await listVisitas());
-  }
-
+  // Atualiza a lista sempre que abrir a aba Histórico.
   useEffect(() => {
-    reloadHistorico();
-  }, []);
-
-  useEffect(() => {
-    if (tab === 'historico') reloadHistorico();
+    if (tab === 'historico') recarregar();
   }, [tab]);
 
-  async function onCaptureGps() {
-    setGpsLoading(true);
-    setGpsMsg(null);
-    const res = await captureLocation();
-    setGpsLoading(false);
-    if (res.ok) {
-      setGps(res.location);
-    } else {
-      setGpsMsg(res.error);
-    }
-  }
-
-  function onClearGps() {
-    setGps(null);
-    setGpsMsg(null);
-  }
-
-  async function onSaved() {
-    await reloadHistorico();
+  async function aoSalvar() {
+    await recarregar();
     setTab('historico');
   }
 
-  async function onClearHistorico() {
-    await clearVisitas();
-    await reloadHistorico();
-  }
-
-  if (!fontsLoaded) return null;
+  if (!pronto) return null;
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.root} edges={['top']}>
         <StatusBar style="light" />
-        <View style={styles.header}>
-          <Text style={styles.title}>🌱 Visitas Técnicas</Text>
-          <Text style={styles.subtitle}>Registro agrícola • Nível Pleno + RF/RNF</Text>
-        </View>
+        <Cabecalho />
 
         <View style={styles.content}>
-          {tab === 'nova' ? (
-            <NovaVisita
-              stability={stability}
-              gps={gps}
-              gpsMsg={gpsMsg}
-              gpsLoading={gpsLoading}
-              onCaptureGps={onCaptureGps}
-              onClearGps={onClearGps}
-              onSaved={onSaved}
-            />
-          ) : tab === 'historico' ? (
-            <Historico data={historico} onReload={reloadHistorico} onClear={onClearHistorico} onNew={() => setTab('nova')} />
-          ) : (
-            <ScrollView>
-              <Status stability={stability} gps={gps} />
-            </ScrollView>
+          {tab === 'nova' && (
+            <NovaVisita stability={stability} gps={gps} onSaved={aoSalvar} />
           )}
+          {tab === 'historico' && (
+            <Historico
+              data={visitas}
+              onReload={recarregar}
+              onClear={limpar}
+              onNew={() => setTab('nova')}
+            />
+          )}
+          {tab === 'status' && <Status stability={stability} gps={gps.gps} />}
         </View>
 
-        <TabBar active={tab} onChange={setTab} historicoCount={historico.length} />
+        <TabBar active={tab} onChange={setTab} historicoCount={visitas.length} />
       </SafeAreaView>
     </SafeAreaProvider>
+  );
+}
+
+function Cabecalho() {
+  return (
+    <View style={styles.header}>
+      <Text style={styles.title}>🌱 Visitas Técnicas</Text>
+      <Text style={styles.subtitle}>Registro agrícola offline</Text>
+    </View>
   );
 }
 

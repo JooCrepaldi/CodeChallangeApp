@@ -1,60 +1,60 @@
-import { useEffect, useState } from 'react';
-import { Keyboard, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { RemixIcon } from '../src/RemixIcon';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTecladoAberto } from '../src/hooks';
 import { theme } from '../src/theme';
 
 const TABS = [
-  { id: 'nova', label: 'Nova', icon: 'add-circle-line' },
-  { id: 'historico', label: 'Histórico', icon: 'history-line' },
-  { id: 'status', label: 'Status', icon: 'dashboard-line' },
+  { id: 'nova', label: 'Nova', icon: 'add-circle-outline' },
+  { id: 'historico', label: 'Histórico', icon: 'time-outline' },
+  { id: 'status', label: 'Status', icon: 'grid-outline' },
 ];
 
 export function TabBar({ active, onChange, historicoCount }) {
   const insets = useSafeAreaInsets();
-  const [kbVisible, setKbVisible] = useState(false);
+  const tecladoAberto = useTecladoAberto();
 
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKbVisible(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKbVisible(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  if (kbVisible) return null;
+  // Esconde a barra enquanto digita para o teclado não cobrir o conteúdo.
+  if (tecladoAberto) return null;
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom + 10 }]}>
-      {TABS.map((t) => {
-          const isActive = active === t.id;
-          return (
-            <TouchableOpacity
-              key={t.id}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              style={[styles.item, isActive && styles.itemActive]}
-              onPress={() => onChange(t.id)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.iconRow}>
-                <RemixIcon
-                  name={t.icon}
-                  size={24}
-                  color={isActive ? theme.colors.primary : theme.colors.muted}
-                />
-                {t.id === 'historico' && historicoCount > 0 ? (
-                  <View style={styles.count}>
-                    <Text style={styles.countText}>{historicoCount > 99 ? '99+' : historicoCount}</Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={[styles.label, isActive && styles.labelActive]}>{t.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+      {TABS.map((tab) => (
+        <Aba
+          key={tab.id}
+          tab={tab}
+          ativa={active === tab.id}
+          contador={tab.id === 'historico' ? historicoCount : 0}
+          onPress={() => onChange(tab.id)}
+        />
+      ))}
     </View>
+  );
+}
+
+function Aba({ tab, ativa, contador, onPress }) {
+  return (
+    <TouchableOpacity
+      accessibilityRole="tab"
+      accessibilityState={{ selected: ativa }}
+      style={[styles.item, ativa && styles.itemActive]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.iconRow}>
+        <Ionicons
+          name={tab.icon}
+          size={24}
+          color={ativa ? theme.colors.primary : theme.colors.muted}
+        />
+        {contador > 0 ? (
+          <View style={styles.count}>
+            <Text style={styles.countText}>{contador > 99 ? '99+' : contador}</Text>
+          </View>
+        ) : null}
+      </View>
+      <Text style={[styles.label, ativa && styles.labelActive]}>{tab.label}</Text>
+    </TouchableOpacity>
   );
 }
 

@@ -1,20 +1,21 @@
 import * as Location from 'expo-location';
 
-// RF02: Verde < 10m | Amarelo 10-30m | Vermelho > 30m (ou sem dados)
+// Classifica a precisão do GPS: verde < 10m, amarelo 10-30m, vermelho > 30m.
+// Retorna nivel ("ok" | "medio" | "ruim") que o Badge sabe pintar.
 export function getGpsLevel(accuracy) {
   if (accuracy == null || Number.isNaN(accuracy)) {
-    return { label: 'Baixa', color: '#fff', bg: '#dc2626', hint: 'sem dados de precisão' };
+    return { nivel: 'ruim', titulo: 'Baixa', detalhe: 'sem dados de precisão' };
   }
   if (accuracy < 10) {
-    return { label: 'Alta', color: '#fff', bg: '#16a34a', hint: `± ${accuracy.toFixed(1)} m` };
+    return { nivel: 'ok', titulo: 'Alta', detalhe: `± ${accuracy.toFixed(1)} m` };
   }
   if (accuracy <= 30) {
-    return { label: 'Média', color: '#422006', bg: '#facc15', hint: `± ${accuracy.toFixed(1)} m` };
+    return { nivel: 'medio', titulo: 'Média', detalhe: `± ${accuracy.toFixed(1)} m` };
   }
-  return { label: 'Baixa', color: '#fff', bg: '#dc2626', hint: `± ${accuracy.toFixed(1)} m` };
+  return { nivel: 'ruim', titulo: 'Baixa', detalhe: `± ${accuracy.toFixed(1)} m` };
 }
 
-// RNF01: nunca estoura — retorna { ok, location?, error? }
+// Captura a posição atual. Nunca joga erro na tela: devolve { ok, location?, error? }.
 export async function captureLocation() {
   try {
     const servicesOn = await Location.hasServicesEnabledAsync();
@@ -29,7 +30,7 @@ export async function captureLocation() {
       accuracy: Location.Accuracy.High,
     });
     return { ok: true, location };
-  } catch (e) {
+  } catch {
     return { ok: false, error: 'Não foi possível obter o GPS agora. Tente novamente.' };
   }
 }

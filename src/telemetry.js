@@ -1,43 +1,45 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Accelerometer } from 'expo-sensors';
+import { LIMITE_G } from './constantes';
 
-export const BLOCK_THRESHOLD_G = 2.0;
-
+// Força total sentida pelo aparelho, em "g" (1g = gravidade da Terra).
 export function computeG(x, y, z) {
   return Math.sqrt(x * x + y * y + z * z);
 }
 
-// Nível Pleno: monitora a aceleração vetorial agregada.
-// Se gMax > 2.0g, o fechamento da auditoria deve ser bloqueado.
+// Ouve o acelerômetro e guarda o valor atual e o pico.
+// blocked fica true quando o pico passa do limite e a tela Nova bloqueia o envio.
 export function useStability() {
   const [gCurrent, setGCurrent] = useState(0);
   const [gMax, setGMax] = useState(0);
   const [available, setAvailable] = useState(true);
-  const subRef = useRef(null);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
+    let ativo = true;
+    let inscricao = null;
+
+    async function iniciar() {
       try {
         const ok = await Accelerometer.isAvailableAsync();
-        if (!mounted) return;
         if (!ok) {
-          setAvailable(false);
+          if (ativo) setAvailable(false);
           return;
         }
         Accelerometer.setUpdateInterval(100);
-        subRef.current = Accelerometer.addListener(({ x, y, z }) => {
+        inscricao = Accelerometer.addListener(({ x, y, z }) => {
           const g = computeG(x, y, z);
           setGCurrent(g);
-          setGMax((prev) => (g > prev ? g : prev));
+          setGMax((pico) => (g > pico ? g : pico));
         });
       } catch {
-        if (mounted) setAvailable(false);
+        if (ativo) setAvailable(false);
       }
-    })();
+    }
+
+    iniciar();
     return () => {
-      subRef.current?.remove();
-      subRef.current = null;
+      ativo = false;
+      inscricao?.remove();
     };
   }, []);
 
@@ -45,5 +47,5 @@ export function useStability() {
     setGMax(0);
   }
 
-  return { gCurrent, gMax, available, blocked: gMax > BLOCK_THRESHOLD_G, resetPeak };
+  return { gCurrent, gMax, available, blocked: gMax > LIMITE_G, resetPeak };
 }

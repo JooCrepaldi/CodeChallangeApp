@@ -1,59 +1,69 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { RemixIcon } from './RemixIcon';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from './theme';
 
+// Peças visuais usadas nas 3 telas. Uma sola Button e uma sola Badge.
+
+// Caixa padrão das seções.
 export function Card({ children, style }) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
+// Título de seção com ícone e número do passo (1, 2, 3...).
 export function SectionTitle({ icon, title, order }) {
   return (
     <View style={styles.sectionRow}>
       {order != null ? <Text style={styles.order}>{order}</Text> : null}
-      <RemixIcon name={icon} size={22} color={theme.colors.primary} />
+      <Ionicons name={icon} size={22} color={theme.colors.primary} />
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
 }
 
-export function Field({ label, style, ...props }) {
+// Campo de texto com rótulo. Props explícitas para facilitar a leitura.
+export function Field({ label, value, onChangeText, placeholder, multiline, style }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={[styles.input, style]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
         placeholderTextColor={theme.colors.muted}
-        {...props}
+        multiline={multiline}
       />
     </View>
   );
 }
 
-export function PrimaryButton({ title, onPress, disabled, danger }) {
+// Único botão do app. variant: "primary" (verde) ou "ghost" (cinza).
+export function Button({ title, onPress, variant = 'primary', disabled }) {
+  const isGhost = variant === 'ghost';
   return (
     <TouchableOpacity
-      style={[styles.btn, danger ? styles.btnDanger : styles.btnPrimary, disabled && styles.btnDisabled]}
+      style={[styles.btn, isGhost ? styles.btnGhost : styles.btnPrimary, disabled && styles.btnDisabled]}
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.85}
     >
-      <Text style={styles.btnText}>{title}</Text>
+      <Text style={[styles.btnText, isGhost && styles.btnTextGhost]}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
-export function GhostButton({ title, onPress }) {
-  return (
-    <TouchableOpacity style={styles.ghost} onPress={onPress} activeOpacity={0.8}>
-      <Text style={styles.ghostText}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
+const BADGE_COLORS = {
+  ok: { bg: '#22C55E', text: '#06240F' },
+  medio: { bg: '#FACC15', text: '#422006' },
+  ruim: { bg: '#EF4444', text: '#fff' },
+};
 
-export function Badge({ bg, color, children }) {
+// Etiqueta colorida. nivel: "ok" | "medio" | "ruim".
+export function Badge({ nivel = 'ok', children }) {
+  const cores = BADGE_COLORS[nivel] || BADGE_COLORS.ok;
   return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Text style={[styles.badgeText, { color: color || '#fff' }]}>{children}</Text>
+    <View style={[styles.badge, { backgroundColor: cores.bg }]}>
+      <Text style={[styles.badgeText, { color: cores.text }]}>{children}</Text>
     </View>
   );
 }
@@ -89,19 +99,10 @@ const styles = StyleSheet.create({
   },
   btn: { borderRadius: theme.radius.btn, paddingVertical: 15, paddingHorizontal: 20, alignItems: 'center', minHeight: 56, justifyContent: 'center' },
   btnPrimary: { backgroundColor: theme.colors.primary },
-  btnDanger: { backgroundColor: theme.colors.danger },
+  btnGhost: { backgroundColor: theme.colors.surface2 },
   btnDisabled: { opacity: 0.5 },
   btnText: { fontFamily: theme.fonts.bold, color: '#06240F', fontSize: 15 },
-  ghost: {
-    borderRadius: theme.radius.btn,
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface2,
-    minHeight: 52,
-    justifyContent: 'center',
-  },
-  ghostText: { fontFamily: theme.fonts.bold, color: theme.colors.text },
+  btnTextGhost: { color: theme.colors.text },
   badge: { borderRadius: 12, paddingVertical: 7, paddingHorizontal: 12, alignSelf: 'flex-start' },
   badgeText: { fontFamily: theme.fonts.bold },
   empty: { alignItems: 'center', gap: 6, paddingVertical: 32 },

@@ -1,68 +1,76 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge, Card, SectionTitle } from '../src/ui';
 import { getGpsLevel } from '../src/gps';
-import { BLOCK_THRESHOLD_G } from '../src/telemetry';
+import { ESCALA_G_MAX, LIMITE_G } from '../src/constantes';
 import { theme } from '../src/theme';
 
-// Monitor somente-leitura: sem botões de ação.
-// Captura de GPS, reset de pico e salvamento vivem na aba Nova (registro).
+// Tela só de leitura: mostra sensores, GPS e saúde do aparelho.
+// Ações (capturar GPS, resetar pico) ficam na aba Nova.
 export function Status({ stability, gps }) {
   const { gCurrent, gMax, available, blocked } = stability;
-  const lvl = getGpsLevel(gps?.coords?.accuracy);
-  const gPct = Math.min(gCurrent / 3, 1);
+  const nivel = getGpsLevel(gps?.coords?.accuracy);
+  const preenchido = Math.min(gCurrent / ESCALA_G_MAX, 1);
 
   return (
-    <View style={styles.wrap}>
+    <ScrollView contentContainerStyle={styles.wrap}>
       <Card>
-        <SectionTitle icon="cpu-line" title="Sensores ao vivo" />
+        <SectionTitle icon="hardware-chip-outline" title="Sensores ao vivo" />
         {!available ? (
-          <Text style={styles.muted}>Acelerômetro indisponível neste aparelho — envio liberado com aviso.</Text>
+          <Text style={styles.apagado}>Acelerômetro indisponível neste aparelho — envio liberado com aviso.</Text>
         ) : (
           <View style={styles.gap}>
             <Text style={styles.g}>Atual {gCurrent.toFixed(2)}g • Pico {gMax.toFixed(2)}g</Text>
             <View style={styles.meter}>
-              <View style={[styles.fill, { width: `${Math.round(gPct * 100)}%`, backgroundColor: blocked ? theme.colors.danger : theme.colors.primary }]} />
-              <View style={[styles.marker, { left: `${(BLOCK_THRESHOLD_G / 3) * 100}%` }]} />
+              <View
+                style={[
+                  styles.fill,
+                  {
+                    width: `${Math.round(preenchido * 100)}%`,
+                    backgroundColor: blocked ? theme.colors.danger : theme.colors.primary,
+                  },
+                ]}
+              />
+              <View style={[styles.marker, { left: `${(LIMITE_G / ESCALA_G_MAX) * 100}%` }]} />
             </View>
-            <Badge bg={blocked ? theme.colors.danger : theme.colors.primary} color={blocked ? '#fff' : '#06240F'}>
-              {blocked ? 'BLOQUEADO — acima de 2.0g' : 'Estável — abaixo de 2.0g'}
+            <Badge nivel={blocked ? 'ruim' : 'ok'}>
+              {blocked ? `BLOQUEADO — acima de ${LIMITE_G.toFixed(1)}g` : `Estável — abaixo de ${LIMITE_G.toFixed(1)}g`}
             </Badge>
-            <Text style={styles.hint}>Para resetar o pico, use a aba Nova antes de fechar a auditoria.</Text>
+            <Text style={styles.dica}>Para resetar o pico, use a aba Nova antes de fechar a auditoria.</Text>
           </View>
         )}
       </Card>
 
       <Card>
-        <SectionTitle icon="compass-3-line" title="GPS e precisão" />
-        <Badge bg={lvl.bg} color={lvl.color}>Precisão {lvl.label} • {lvl.hint}</Badge>
+        <SectionTitle icon="compass-outline" title="GPS e precisão" />
+        <Badge nivel={nivel.nivel}>Precisão {nivel.titulo} • {nivel.detalhe}</Badge>
         {gps ? (
           <Text style={styles.coords}>{gps.coords.latitude.toFixed(6)}, {gps.coords.longitude.toFixed(6)}</Text>
         ) : (
-          <Text style={styles.muted}>Nenhuma posição capturada ainda. Capture na aba Nova.</Text>
+          <Text style={styles.apagado}>Nenhuma posição capturada ainda. Capture na aba Nova.</Text>
         )}
-        <Text style={styles.hint}>Verde &lt; 10m • Amarelo 10–30m • Vermelho &gt; 30m (RF02)</Text>
+        <Text style={styles.dica}>Verde &lt; 10m • Amarelo 10–30m • Vermelho &gt; 30m</Text>
       </Card>
 
       <Card>
-        <SectionTitle icon="shield-check-line" title="Saúde do aparelho (RNF01)" />
-        <Text style={styles.row}>• Acelerômetro: {available ? 'disponível' : 'indisponível (modo degradado)'}</Text>
-        <Text style={styles.row}>• GPS: {gps ? 'posição válida' : 'aguardando captura'}</Text>
-        <Text style={styles.row}>• Armazenamento: AsyncStorage local, funciona offline</Text>
-        <Text style={styles.hint}>Sem GPS ou sem câmera o app continua — apenas avisa e permite concluir.</Text>
+        <SectionTitle icon="shield-checkmark-outline" title="Saúde do aparelho" />
+        <Text style={styles.linha}>• Acelerômetro: {available ? 'disponível' : 'indisponível (modo degradado)'}</Text>
+        <Text style={styles.linha}>• GPS: {gps ? 'posição válida' : 'aguardando captura'}</Text>
+        <Text style={styles.linha}>• Armazenamento: AsyncStorage local, funciona offline</Text>
+        <Text style={styles.dica}>Sem GPS ou sem câmera o app continua — apenas avisa e permite concluir.</Text>
       </Card>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 16, gap: 4 },
+  wrap: { padding: 16, gap: 4, paddingBottom: 32 },
   gap: { gap: 10 },
   g: { fontSize: 18, fontFamily: theme.fonts.bold, color: theme.colors.text, fontVariant: ['tabular-nums'] },
   meter: { height: 12, borderRadius: 6, backgroundColor: theme.colors.surface2, overflow: 'hidden', position: 'relative' },
   fill: { height: '100%', borderRadius: 6 },
   marker: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: '#fff', opacity: 0.8 },
   coords: { fontFamily: theme.fonts.regular, color: theme.colors.text, fontVariant: ['tabular-nums'] },
-  muted: { fontFamily: theme.fonts.regular, color: theme.colors.muted },
-  row: { fontFamily: theme.fonts.regular, color: theme.colors.text },
-  hint: { fontFamily: theme.fonts.regular, color: theme.colors.muted, fontSize: 12 },
+  apagado: { fontFamily: theme.fonts.regular, color: theme.colors.muted },
+  linha: { fontFamily: theme.fonts.regular, color: theme.colors.text },
+  dica: { fontFamily: theme.fonts.regular, color: theme.colors.muted, fontSize: 12 },
 });

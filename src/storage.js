@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const KEY = '@visitas_tecnicas_v1';
+// Chave única do app no AsyncStorage. Funciona offline.
+const CHAVE = '@visitas_tecnicas_v1';
 
+// Lista as visitas salvas (mais novas primeiro). Se der erro, devolve [].
 export async function listVisitas() {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await AsyncStorage.getItem(CHAVE);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -13,6 +15,7 @@ export async function listVisitas() {
   }
 }
 
+// Salva uma visita no topo da lista e devolve o item criado.
 export async function saveVisita(visita) {
   const atual = await listVisitas();
   const item = {
@@ -20,11 +23,11 @@ export async function saveVisita(visita) {
     createdAt: new Date().toISOString(),
     ...visita,
   };
-  const next = [item, ...atual];
-  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+  await AsyncStorage.setItem(CHAVE, JSON.stringify([item, ...atual]));
   return item;
 }
 
+// Apaga todos os registros locais.
 export async function clearVisitas() {
-  await AsyncStorage.removeItem(KEY);
+  await AsyncStorage.removeItem(CHAVE);
 }
